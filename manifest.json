@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "AutoclickerHH",
+  "version": "1.0.0",
+  "description": "This is my first Chrome Extension",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "windows",
+    "tabs"
+  ],
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": {}
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["script.js"]
+    }
+  ]
+}

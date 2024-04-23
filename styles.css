@@ -1,0 +1,20 @@
+.warning-hh {
+    display: none;
+    color: red;
+}
+
+.error {
+    display: none;
+    color: red;
+}
+
+.textarea-cover-letter {
+    resize: none;
+}
+
+.main {
+    background: #a90000;
+    color: white;
+    height: 100%;
+    width: 100%;
+}
