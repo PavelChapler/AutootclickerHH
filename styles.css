@@ -1,3 +1,107 @@
+/*variables*/
+:root {
+    --main-border-radius: 8px;
+    --main-red-color: #cb1818;
+    --main-green-color: #37ce3f;
+}
+
+.app {
+    height: 100vh;
+    background: var(--main-red-color);
+}
+
+.header {
+    background: var(--main-red-color);
+}
+
+.main {
+    background: var(--main-red-color);
+    color: white;
+    width: 100%;
+    padding: 1em 2em;
+}
+
+h1 {
+    margin: 0;
+    text-align: center;
+    font-size: 1.5em;
+    position: relative;
+    line-height: 2.5em;
+    color: white;
+}
+
+h1::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 2px;
+    background-color: white;
+}
+
+/*cover letter*/
+.cover-letter {
+    margin-top: 20px;
+}
+
+.cover-letter__label {
+    width: 100%;
+    text-align: center;
+}
+
+.cover-letter__textarea-container {
+    background: white;
+    border-radius: var(--main-border-radius);
+    overflow: hidden
+}
+
+.cover-letter__textarea::-webkit-scrollbar {
+    width: 10px;
+}
+
+.cover-letter__textarea::-webkit-scrollbar-track {
+    background-color:#edeadf;
+    border-radius: var(--main-border-radius);
+}
+
+.cover-letter__textarea::-webkit-scrollbar-thumb {
+    border-radius: var(--main-border-radius);
+    background-color: var(--main-green-color);
+}
+
+.cover-letter__textarea {
+    resize: none;
+    border: none;
+    padding: 10px;
+    outline: none;
+}
+
+/*button*/
+.button-start {
+    text-align: center;
+    display: block;
+    border: 0;
+    border-radius: var(--main-border-radius);
+    margin: 2em auto 0;
+    width: 7em;
+    height: 2.5em;
+    background-color: var(--main-green-color);
+    color: white;
+
+    font-size: 1.2em;
+    font-weight: 700;
+
+    transition: 0.2s all ease;
+}
+
+.button-start:hover {
+    cursor: pointer;
+    background: darkess;
+    filter: brightness(85%);
+}
+
+/*other*/
 .warning-hh {
     display: none;
     color: red;
@@ -6,15 +110,4 @@
 .error {
     display: none;
     color: red;
-}
-
-.textarea-cover-letter {
-    resize: none;
-}
-
-.main {
-    background: #a90000;
-    color: white;
-    height: 100%;
-    width: 100%;
 }

@@ -5,17 +5,25 @@
         <link rel="stylesheet" href="styles.css">
     </header>
     <body>
-        <div class="main">
-            <h1 class="">Автооткликер HH</h1>
-
-            <label for="coverLetter">Напишите сопроводительное:</label>
-            <textarea id="coverLetter" name="coverLetter" rows="5" cols="33" class="textarea-cover-letter"></textarea>
-
-            <button id="switchButton">Start</button>
-
-            <h2 class="warning-hh">Зайдите на сайт hh!</h2>
-
-            <h2 class="error"></h2>
+        <div class="app">
+            <header class="header">
+                <h1>hh автоотклик</h1>
+            </header>
+    
+            <main class="main">
+                <div class="cover-letter">
+                    <label for="coverLetter" class="cover-letter__label">Сопроводительное:</label>
+                    <div class="cover-letter__textarea-container">
+                        <textarea id="coverLetter" name="coverLetter" rows="5" cols="33" class="cover-letter__textarea"></textarea>
+                    </div>
+                </div>
+    
+                <button id="switchButton" class="button-start">Start</button>
+    
+                <h2 class="warning-hh">Зайдите на сайт hh!</h2>
+    
+                <h2 class="error"></h2>
+            </main>
         </div>
 
         <script src="popup.js"></script>
