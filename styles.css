@@ -5,8 +5,13 @@
     --main-green-color: #37ce3f;
 }
 
+/* main */
+html {
+    height: 0px;
+}
+
 .app {
-    height: 100vh;
+    /* height: 100vh; */
     background: var(--main-red-color);
 }
 
@@ -18,15 +23,15 @@
     background: var(--main-red-color);
     color: white;
     width: 100%;
-    padding: 1em 2em;
+    padding: 2rem 2rem;
 }
 
 h1 {
     margin: 0;
     text-align: center;
-    font-size: 1.5em;
+    font-size: 1.5rem;
     position: relative;
-    line-height: 2.5em;
+    line-height: 2.5rem;
     color: white;
 }
 
@@ -41,10 +46,6 @@ h1::after {
 }
 
 /*cover letter*/
-.cover-letter {
-    margin-top: 20px;
-}
-
 .cover-letter__label {
     width: 100%;
     text-align: center;
@@ -83,13 +84,13 @@ h1::after {
     display: block;
     border: 0;
     border-radius: var(--main-border-radius);
-    margin: 2em auto 0;
-    width: 7em;
-    height: 2.5em;
+    margin: 2rem auto 0;
+    width: 7rem;
+    height: 2.5rem;
     background-color: var(--main-green-color);
     color: white;
 
-    font-size: 1.2em;
+    font-size: 1.2rem;
     font-weight: 700;
 
     transition: 0.2s all ease;
@@ -109,5 +110,21 @@ h1::after {
 
 .error {
     display: none;
-    color: red;
+    align-items: center;
+    margin-top: 2rem;
+    padding: 1rem;
+    background-color: black;
+    color: rgb(255, 141, 11);
+    border-radius: var(--main-border-radius);
+}
+
+.error__image {
+    max-width: 25%;
+    margin-right: 1rem;
+}
+
+.error__text {
+    font-size: 1.1rem;
+    font-weight: 300;
+    text-wrap: balance;
 }

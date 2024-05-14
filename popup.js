@@ -1,11 +1,14 @@
 const button = document.getElementById('switchButton')
-const warningHhLabel = document.getElementsByClassName('warning-hh')[0]
-const errorLabel = document.getElementsByClassName('error')[0]
+const error = document.getElementsByClassName('error')[0]
 const coverLetter = document.getElementById('coverLetter')
 
 setTimeout(() => {
     console.log(coverLetter.value)
 }, 10000)
+
+chrome.storage.sync.get('coverLetter').then(items => {
+    console.log(items.coverLetter)
+})
 
 let isHHtab
 let isEnabledExtensions
@@ -17,23 +20,24 @@ coverLetter.addEventListener('input', () => {
     chrome.storage.sync.set({coverLetter: coverLetter.value})
 })
 
-function returnToPreviousPage() {
-    setTimeout(() => {
-        if (initialUrl) {
-            chrome.tabs.update({ url: initialUrl });
-            console.log('RETURN previous page:', initialUrl);
-        } else {
-            console.log('URL previous page NOT FOUND.');
-        }
-    }, 5000)
-}
+// //Функции для возврата на предыдущую страницу
+// function returnToPreviousPage() {
+//     setTimeout(() => {
+//         if (initialUrl) {
+//             chrome.tabs.update({ url: initialUrl });
+//             console.log('RETURN previous page:', initialUrl);
+//         } else {
+//             console.log('URL previous page NOT FOUND.');
+//         }
+//     }, 5000)
+// }
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.url && changeInfo.status === 'loading' && changeInfo.url !== initialUrl) {
-        returnToPreviousPage()
+// chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+//     if (changeInfo.url && changeInfo.status === 'loading' && changeInfo.url !== initialUrl) {
+//         returnToPreviousPage()
 
-    }
-})
+//     }
+// })
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'error') {
@@ -78,10 +82,7 @@ button.addEventListener('click', (e) => {
                 onExtension()
             } else {
                 console.log("Страница с вашим контентным скриптом не открыта");
-                warningHhLabel.style.display = 'block'
-                setTimeout(() => {
-                    warningHhLabel.style.display = 'none'
-                }, 5000)
+                showError('Зайдите на сайт hh!')
             }
         } else {
             if (tabs.length > 0 && isHHtab) {
@@ -91,10 +92,7 @@ button.addEventListener('click', (e) => {
                 offExtension()
             } else {
                 console.log("Страница с вашим контентным скриптом не открыта");
-                warningHhLabel.style.display = 'block'
-                setTimeout(() => {
-                    warningHhLabel.style.display = 'none'
-                }, 5000)
+                showError('Зайдите на сайт hh!')
             }
         }
     });
@@ -113,7 +111,7 @@ function onExtension() {
     //         onExtension()
     //     } else {
     //         console.log("Страница с вашим контентным скриптом не открыта");
-    //         warningHhLabel.style.display = 'block'
+    //         warningHhLabel.style.display = 'flex'
     //         setTimeout(() => {
     //             warningHhLabel.style.display = 'none'
     //         }, 5000)
@@ -139,7 +137,7 @@ function offExtension() {
     //         offExtension()
     //     } else {
     //         console.log("Страница с вашим контентным скриптом не открыта");
-    //         warningHhLabel.style.display = 'block'
+    //         warningHhLabel.style.display = 'flex'
     //         setTimeout(() => {
     //             warningHhLabel.style.display = 'none'
     //         }, 5000)
@@ -153,10 +151,12 @@ function offExtension() {
 }
 
 function showError(message) {
-    if (errorLabel && message) {
-        errorLabel.style.display = 'block'
+    if (error && message) {
+        error.style.display = 'flex'
 
-        errorLabel.innerText = message
+        const errorText = error.getElementsByClassName('error__text')[0]
+
+        errorText.innerText = message
     }
 }
 

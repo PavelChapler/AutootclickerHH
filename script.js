@@ -1,6 +1,7 @@
-const vacancyCollectionHtml = document.getElementById("a11y-main-content").children
+let vacancyCollectionHtml = document.getElementById("a11y-main-content").children
 let isEnabledExtensions = false
 let completedVacancyIndex = 0
+let coverLetter
 console.log('yes')
 console.dir(vacancyCollectionHtml)
 
@@ -25,6 +26,8 @@ function userScrollOn() {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "executeFunction") {
         isEnabledExtensions = true
+        coverLetter = message.coverLetter
+
         userScrollOff()
         saveCurrentUrl()
         перебратьВсеВакансии()
@@ -52,13 +55,26 @@ const observer = new IntersectionObserver((entries, observer) => {
 })
 
 async function перебратьВсеВакансии() {
-    for (let i = 0; completedVacancyIndex < vacancyCollectionHtml.length; completedVacancyIndex++) {
+    vacancyCollectionHtml = document.getElementById("a11y-main-content").children
+
+    console.dir(vacancyCollectionHtml)
+
+    console.log("Перебор вакансий запущен")
+
+    for (let i = 0; completedVacancyIndex <= vacancyCollectionHtml.length; completedVacancyIndex++) {
         try {
             if (!isEnabledExtensions) break;
+
+            console.log('vacancyIndex', completedVacancyIndex, 'vacancyLength', vacancyCollectionHtml.length)
+            if (completedVacancyIndex === vacancyCollectionHtml.length) {
+                goNextPage()
+                break
+            }
 
             const vacancyNode = vacancyCollectionHtml[completedVacancyIndex];
             const узелСсылки = findNodeByTagnameAndTextInTag(vacancyNode, 'SPAN', 'Откликнуться')?.parentNode;
 
+            console.log('узелссылки', узелСсылки)
             if (!узелСсылки) continue;
 
             await scrollToTheElement(vacancyNode);
@@ -72,18 +88,15 @@ async function перебратьВсеВакансии() {
 
             const textarea = getTextAreaForCoverLetter(vacancyNode)
 
-            await writeCoverLetter(textarea, 'Hi, заинтересовала вакансия. Есть опыт в вашем стеке. Сейчас пишу в основном на vue в связке с nuxt\n' +
-                'Пообщаться могу в гугл мит/зум в будние после 15:00.\n' +
-                '\n' +
-                'tg: @ChaplerII2000\n' +
-                'почта: chapler4646@gmail.com')
+            await writeCoverLetter(textarea, coverLetter)
 
             const buttonSend = await getButtonSendCoverLetter(vacancyNode, 'vacancy-response-letter-submit', 2000)
 
             await sendCoverLetter(buttonSend, 2000)
-            console.log('yes', узелСсылки);
+
+            // console.log('yes', узелСсылки);
         } catch (err) {
-            console.log(err)
+            console.error(err.cause || err)
 
             isEnabledExtensions = false
 
@@ -160,7 +173,7 @@ function откликнутьсяНаВакансию(ссылка, delayPromise
 
 function findNodeByTagnameAndTextInTag(node, tagName, textInTag) {
     // Проверяем текущий узел
-    if (node.tagName === tagName && node.innerText === textInTag) {
+    if (node && node.tagName === tagName && node.innerText === textInTag) {
         return node; // Если имя узла соответствует целевому, возвращаем его
     }
 
@@ -272,5 +285,14 @@ function saveCurrentUrl() {
     const currentUrl = window.location.href
 
     chrome.runtime.sendMessage({type: 'saveUrl', currentUrl: currentUrl})
+}
+
+function goNextPage() {
+    console.log('YES1')
+    const pagerButtonNext = document.querySelector(`[data-qa="${'pager-next'}"]`)
+
+    pagerButtonNext.click()
+
+    setTimeout(() => перебратьВсеВакансии(), 10000)
 }
 // перебратьВсеВакансии()
