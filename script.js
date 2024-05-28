@@ -1,43 +1,12 @@
-let vacancyCollectionHtml = document.getElementById("a11y-main-content").children
+const MAIN_VACANCIES_BLOK_NAME = "a11y-main-content"
+const START_VACANSY_NUM = 0
+
+let vacancyCollectionHtml = document.getElementById(MAIN_VACANCIES_BLOK_NAME).children
 let isEnabledExtensions = false
 let completedVacancyIndex = 0
 let coverLetter
-console.log('yes')
-console.dir(vacancyCollectionHtml)
+let final = false
 
-// window.addEventListener('popstate', function(event) {
-//     event.preventDefault(); // Предотвращаем изменение URL
-//     history.pushState({}, '', window.location.href); // Восстанавливаем URL
-// });
-
-function preventScroll(event) {
-    event.preventDefault()
-}
-function userScrollOff() {
-    window.addEventListener('wheel', preventScroll, {passive: false})
-    window.addEventListener('touchmove', preventScroll, {passive: false})
-}
-
-function userScrollOn() {
-    window.removeEventListener('wheel', preventScroll)
-    window.removeEventListener('touchmove', preventScroll)
-}
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === "executeFunction") {
-        isEnabledExtensions = true
-        coverLetter = message.coverLetter
-
-        userScrollOff()
-        saveCurrentUrl()
-        перебратьВсеВакансии()
-    }
-
-    if (message.type === 'stopFunction') {
-        isEnabledExtensions = false
-        userScrollOn()
-    }
-})
 
 const observer = new IntersectionObserver((entries, observer) => {
     entries.forEach((entry) => {
@@ -54,120 +23,97 @@ const observer = new IntersectionObserver((entries, observer) => {
     })
 })
 
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === "executeFunction") {
+        onExtension()
+        coverLetter = message.coverLetter
+
+        userScrollOff()
+        перебратьВсеВакансии()
+    }
+
+    if (message.type === 'stopFunction') {
+        offExtension()
+        userScrollOn()
+    }
+})
+
+
 async function перебратьВсеВакансии() {
+    if (final) toFinish()
+
+    completedVacancyIndex = START_VACANSY_NUM
+
     vacancyCollectionHtml = document.getElementById("a11y-main-content").children
-
-    console.dir(vacancyCollectionHtml)
-
-    console.log("Перебор вакансий запущен")
 
     for (let i = 0; completedVacancyIndex <= vacancyCollectionHtml.length; completedVacancyIndex++) {
         try {
             if (!isEnabledExtensions) break;
 
-            console.log('vacancyIndex', completedVacancyIndex, 'vacancyLength', vacancyCollectionHtml.length)
             if (completedVacancyIndex === vacancyCollectionHtml.length) {
                 goNextPage()
                 break
             }
 
             const vacancyNode = vacancyCollectionHtml[completedVacancyIndex];
-            const узелСсылки = findNodeByTagnameAndTextInTag(vacancyNode, 'SPAN', 'Откликнуться')?.parentNode;
+            const узелКнопкиОткликнуться = findNodeByTagnameAndTextInTag(vacancyNode, 'SPAN', 'Откликнуться')?.parentNode;
 
-            console.log('узелссылки', узелСсылки)
-            if (!узелСсылки) continue;
+            if (!узелКнопкиОткликнуться) continue;
 
             await scrollToTheElement(vacancyNode);
             await waitForElementToBecomeVisible(vacancyNode);
 
-            await откликнутьсяНаВакансию(узелСсылки)
-
-            const buttonAttach = await getButtonAttachCoverLetter(vacancyNode, 'vacancy-response-letter-toggle', 5000)
-
-            await attachCoverLetter(buttonAttach, 1000)
-
-            const textarea = getTextAreaForCoverLetter(vacancyNode)
-
-            await writeCoverLetter(textarea, coverLetter)
-
-            const buttonSend = await getButtonSendCoverLetter(vacancyNode, 'vacancy-response-letter-submit', 2000)
-
-            await sendCoverLetter(buttonSend, 2000)
-
-            // console.log('yes', узелСсылки);
+            await откликнутьсяНаВакансию(vacancyNode, узелКнопкиОткликнуться, 2000)
         } catch (err) {
             console.error(err.cause || err)
 
-            isEnabledExtensions = false
+            offExtension(err.message)
 
             userScrollOn()
-
-            chrome.runtime.sendMessage({type: 'error', content: err.message})
 
             break
         }
     }
+
+    return true
 }
 
-// async function перебратьВсеВакансии() {
-//     let i = 0
-//     for (let vacancyNode of vacancyCollectionHtml) {
-//         if (!isEnabledExtensions) break
-//         const узелСсылки = findNodeByTagnameAndTextInTag(vacancyNode, 'SPAN', 'Откликнуться')?.parentNode
-//
-//         if (!узелСсылки) continue
-//
-//         await scrollToTheElement(vacancyNode)
-//
-//         await waitForElementToBecomeVisible(vacancyNode)
-//
-//         console.log('yes', узелСсылки)
-//         i++
-//         // const ссылкаОтклика = узелСсылки.href
-//         //
-//         // await откликнутьсяНаВакансию("https://vk.com/feed")
-//
-//         delete vacancyCollectionHtml[i]
-//     }
-// }
-
-function откликнутьсяНаВакансиюТест(ссылка) {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            console.log("Откликнулись!")
-
-            resolve()
-        }, 1000)
-    })
-}
-function откликнутьсяНаВакансию(ссылка, delayPromise = 0) {
-    return new Promise((resolve, reject) => {
-        // throw new Error('ошибка тест')
-        setTimeout(() => {
-            history.replaceState({}, document.title, window.location.pathname);
-        }, 0);
-        ссылка.addEventListener('click', function(event) {
-            // Теперь у нас есть доступ к объекту события 'event'
-            console.log(event); // Можете здесь исследовать объект события
-
-            // Вы можете здесь предпринять любые действия,
-            // например, предотвратить стандартное поведение кнопки, если это необходимо
-            // event.preventDefault();
-
-            if (event.defaultPrevented) {
-                console.log('Навигация по новому URL предотвращена');
-            } else {
-                console.log('При клике произойдет навигация по новому URL');
+function откликнутьсяНаВакансию(vacancyNode, КнопкаОткликнуться, delay = 0) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            setTimeout(() => {
+                history.replaceState({}, document.title, window.location.pathname);
+            }, 0);
+    
+            КнопкаОткликнуться.addEventListener('click', function(event) {
+                event.preventDefault()
+            });
+    
+            КнопкаОткликнуться.click()
+    
+            await pause(delay)
+    
+            if (checkBlockingPopup()) {
+                await respondInBlockedPopup()
+                
+                return
             }
+    
+            await clickAttachCoverLetter(vacancyNode, 'vacancy-response-letter-toggle')
+    
+            await pause(delay)
+    
+            await writeCoverLetter(vacancyNode, coverLetter, 'textarea[name="text"]')
+    
+            await pause(delay)
+    
+            await sendCoverLetter(vacancyNode, 'vacancy-response-letter-submit')
 
-            event.preventDefault()
-        });
-
-        ссылка.click()
-
-        setTimeout(() => {
             resolve()
-        }, delayPromise)
+        } catch(err) {
+            reject(err)
+        }
     })
 }
 
@@ -197,7 +143,7 @@ function scrollToTheElement(element) {
         })
     }
 }
-//https://tyumen.hh.ru/applicant/vacancy_response?vacancyId=93155994&hhtmFrom=vacancy_search_list
+
 function waitForElementToBecomeVisible(element) {
     return new Promise(resolve => {
         const observer = new IntersectionObserver((entries) => {
@@ -214,85 +160,148 @@ function waitForElementToBecomeVisible(element) {
     });
 }
 
-function attachCoverLetter(button, delay = 2000) {
+async function clickAttachCoverLetter(parentNode, attributeNameButton) {
+    const button = await getButtonSendCoverLetter(parentNode, attributeNameButton)
+
     return new Promise((resolve, reject) => {
         if (button) {
-            setTimeout(() => {
-                button.click()
-                resolve()
-            }, delay)
+            button.click()
+            resolve()
         } else {
-            reject(new Error('Нету кнопки для прикрепления сопроводительного'))
+            reject(new Error('Кнопка "Прикрепить сопроводительное не найдена"'))
         }
     })
 }
 
-function getButtonAttachCoverLetter(parentNode, attributeName, delay = 5000) {
+function getButtonSendCoverLetter(parentNode, attributeName) {
     return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            const button = parentNode.querySelector(`[data-qa="${attributeName}"]`)
-            console.log(button)
+        const button = parentNode.querySelector(`[data-qa="${attributeName}"]`)
 
-            if (!button) reject(new Error('Кнопка для Прикрепления сопроводительного не найдена'))
-            else resolve(button)
-        }, delay)
+        if (!button) reject(new Error('Кнопка для Отправки сопроводительного не найдена'))
+        else resolve(button)
     })
 }
 
-function getTextAreaForCoverLetter(parentNode) {
-    return parentNode.querySelector('textarea[name="text"]')
+function getTextAreaForCoverLetter(parentNode, attributeName) {
+    return parentNode.querySelector(attributeName)
 }
 
-function writeCoverLetter(field, text, delay = 2000) {
+async function writeCoverLetter(vacancyNode, text, attributeName) {
+    const field = await getTextAreaForCoverLetter(vacancyNode, attributeName)
     return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            if (field) {
-                field.value = text
-                resolve()
-            } else {
-                reject(new Error('Не найдено поле куда вводить сопроводительное'))
-            }
-        }, delay)
+        if (field) {
+            field.value = text
+            resolve()
+        } else {
+            reject(new Error('Не найдено поле куда вводить сопроводительное'))
+        }
     })
 }
 
-function getButtonSendCoverLetter(parentNode, attributeName, delay = 2000) {
+function getButtonSendCoverLetter(parentNode, attributeName) {
     return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            const button = parentNode.querySelector(`[data-qa="${attributeName}"]`)
-            console.log(button)
+        const button = parentNode.querySelector(`[data-qa="${attributeName}"]`)
 
-            if (!button) reject(new Error('Кнопка для Отправки сопроводительного не найдена'))
-            else resolve(button)
-        }, delay)
+        if (!button) reject(new Error('Кнопка для Отправки сопроводительного не найдена'))
+        else resolve(button)
     })
 }
 
-function sendCoverLetter(buttonSend, delay = 2000) {
+async function sendCoverLetter(vacancyNode, attributeName) {
+    const buttonSend = await getButtonSendCoverLetter(vacancyNode, attributeName)
+
     return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            if (buttonSend) {
-                buttonSend.click()
-                resolve()
-            } else {
-                reject(new Error('Нету кнопки для отправки сопроводительного'))
-            }
-        })
-    }, delay)
-}
-
-function saveCurrentUrl() {
-    const currentUrl = window.location.href
-
-    chrome.runtime.sendMessage({type: 'saveUrl', currentUrl: currentUrl})
+        if (buttonSend) {
+            buttonSend.click()
+            resolve()
+        } else {
+            reject(new Error('Нету кнопки для отправки сопроводительного'))
+        }
+    })
 }
 
 function goNextPage() {
-    console.log('YES1')
     const pagerButtonNext = document.querySelector(`[data-qa="${'pager-next'}"]`)
+
+    if (!pagerButtonNext) {
+        final = true
+
+        return
+    }
 
     pagerButtonNext.click()
 
     setTimeout(() => перебратьВсеВакансии(), 10000)
 }
-// перебратьВсеВакансии()
+
+function checkBlockingPopup() {
+    return !!document.querySelector(`[data-qa="${'bloko-modal'}"]`)
+}
+
+function respondInBlockedPopup() {
+    return new Promise((resolve, reject) => {
+        try {
+            const inputCoverLetterBlockingPopupField = document.querySelector(`[data-qa="${'vacancy-response-popup-form-letter-input'}"]`)
+            const buttonAttachBlockingPopup = document.querySelector(`[data-qa="${'vacancy-response-submit-popup'}"]`)
+
+            if (inputCoverLetterBlockingPopupField && buttonAttachBlockingPopup) {
+                inputCoverLetterBlockingPopupField.value = coverLetter
+
+                const inputEvent = new Event('input', { bubbles: true })
+
+                inputCoverLetterBlockingPopupField.dispatchEvent(inputEvent)
+
+                setTimeout(() => {
+                    buttonAttachBlockingPopup.click()
+
+                    resolve()
+                }, 2000)
+
+                setTimeout(() => {
+                    if (checkBlockingPopup) reject(new Error('Какая-то непонятная ошибка в блокирующем попапе'))
+                }, 2000)
+
+        } else {
+            reject(new Error('Найден блокирующий попап но текстовое поле или кнопка в нем не найдены'))
+        }
+        } catch (err) {
+            throw new Error(err)
+        }
+    })
+}
+
+function pause(delay) {
+    return new Promise(resolve => setTimeout(() => resolve(), delay))
+  }
+  
+function preventScroll(event) {
+    event.preventDefault()
+}
+
+function userScrollOff() {
+    window.addEventListener('wheel', preventScroll, {passive: false})
+    window.addEventListener('touchmove', preventScroll, {passive: false})
+}
+
+function userScrollOn() {
+    window.removeEventListener('wheel', preventScroll)
+    window.removeEventListener('touchmove', preventScroll)
+}
+
+function onExtension() {
+    isEnabledExtensions = true
+}
+
+function offExtension(err) {
+    if (err) chrome.runtime.sendMessage({type: 'error', content: err.message})
+
+    isEnabledExtensions = false
+}
+
+function toFinish() {
+    offExtension()
+
+    chrome.runtime.sendMessage({type: 'final', content: true})
+
+    alert('Перебор вакансий завершен!')
+}

@@ -1,0 +1,14 @@
+{
+  "name": "AutoclickerHH",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "node dist/index.js",
+    "clean": "rm -Recurse -Force node_modules"
+  },
+  "author": "",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
+}

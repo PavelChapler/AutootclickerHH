@@ -12,7 +12,6 @@ chrome.storage.sync.get('coverLetter').then(items => {
 
 let isHHtab
 let isEnabledExtensions
-let initialUrl
 
 const test = {enabled: false}
 
@@ -46,8 +45,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         showError(message.content)
     }
 
-    if (message.type === 'saveUrl') {
-        initialUrl = message.currentUrl
+    if (message.type === 'final') {
+        offExtension()
     }
 })
 
