@@ -3,6 +3,7 @@ const error = document.getElementsByClassName('error')[0]
 const coverLetter = document.getElementById('coverLetter')
 const vacanciesNumber = document.getElementById('numberVacancies')
 const errorVacanciesList = document.getElementById('errorVacanciesList')
+const errorVacanciesBlock = document.getElementById('errorVacanciesBlock')
 
 let port
 let isHHtab
@@ -46,18 +47,15 @@ chrome.storage.sync.get("coverLetter").then(items => {
 })
 
 chrome.storage.local.get("errorVacancies").then(items => {
-    console.log('vaca', items)
     const errorVacancies = items.errorVacancies
 
     createListErrorVacansies(errorVacancies)
 }).then(res => {
-    console.log(res)
     checkResolveErrorVacansies()
 })
 
 chrome.storage.local.get('resolvedErrorVacancies').then((res) => {
     const resolvedErrorVacancies = res.resolvedErrorVacancies
-    console.log(resolvedErrorVacancies)
     // resolvedErrorVacancies.filter(vacancy => vacancy !== clickedVacancy)
 
     // chrome.storage.local.set({resolvedErrorVacancies: resolvedErrorVacancies})
@@ -79,7 +77,6 @@ coverLetter.addEventListener('input', () => {
 
 errorVacanciesList.addEventListener('click', (e) => {
     if (e.target.tagName === 'A') {
-        console.log('yes')
         chrome.storage.local.get({resolvedErrorVacancies: []}, (res) => {
             const resolvedErrorVacancies = res.resolvedErrorVacancies
             const clickedVacancy = e.target.innerText
@@ -96,7 +93,6 @@ errorVacanciesList.addEventListener('click', (e) => {
         chrome.storage.local.get({errorVacancies: []}, (res) => {
             const errorVacancies = res.errorVacancies
             const index = errorVacancies.findIndex((vacancy => vacancy.vacancyLabel === e.target.parentNode.innerText))
-            console.log(res.errorVacancies)
 
             errorVacancies.splice(index, 1)
 
@@ -116,8 +112,6 @@ errorVacanciesList.addEventListener('click', (e) => {
             chrome.storage.local.set({resolvedErrorVacancies: resolvedErrorVacancies})
         })
     }
-
-    console.log(e)
 })
 
 vacanciesNumber.addEventListener('input', (e) => {
@@ -138,7 +132,6 @@ button.addEventListener('click', (e) => {
                 // Сохраняем в стор расширений состояние что расширение запущено
                 onExtension()
             } else {
-                console.log("Страница с вашим контентным скриптом не открыта");
                 showError('Зайдите на сайт hh!')
             }
         } else {
@@ -148,7 +141,6 @@ button.addEventListener('click', (e) => {
                 // Сохраняем в стор расширений состояние что расширение остановлено
                 offExtension()
             } else {
-                console.log("Страница с вашим контентным скриптом не открыта");
                 showError('Зайдите на сайт hh!')
             }
         }
@@ -160,7 +152,6 @@ button.addEventListener('click', (e) => {
 function checkResolveErrorVacansies() {
     document.querySelectorAll('a').forEach((link) => {
         chrome.storage.local.get("resolvedErrorVacancies").then(items => {
-            console.log(items.resolvedErrorVacancies.includes(link.innerText))
             if (items.resolvedErrorVacancies.includes(link.innerText)) {
                 link.classList.add('visitedLink')
             }
@@ -194,6 +185,14 @@ function showError(message) {
 
 function createListErrorVacansies(errorVacancies) {
     errorVacanciesList.innerHTML = ''
+
+    if (errorVacancies.length > 0) {
+        errorVacanciesBlock.style.display = 'block'
+    } else {
+        errorVacanciesBlock.style.display = 'none'
+        return
+    }
+
     for (let i = 0; i < errorVacancies.length; i++) {
         const newListItem = document.createElement('li')
         const newLinkItem = document.createElement('a')

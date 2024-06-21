@@ -1,5 +1,6 @@
 const MAIN_VACANCIES_BLOK_NAME = "a11y-main-content"
 const START_VACANSY_NUM = 0
+const ignoreClassesBlockWork = ['bloko-modal-overlay']
 
 let vacancyCollectionHtml = document.getElementById(MAIN_VACANCIES_BLOK_NAME)?.children
 let isEnabledExtensions = false
@@ -11,7 +12,6 @@ let final = false
 let errorAlready = false
 let vacancyResponseButtonMain = document.querySelector(`[data-qa="vacancy-response-link-top"]`)
 
-console.log(vacancyResponseButtonMain)
 
 
 const observer = new IntersectionObserver((entries, observer) => {
@@ -26,15 +26,6 @@ const observer = new IntersectionObserver((entries, observer) => {
             }
             observer.unobserve(entry.target); // Отключаем наблюдение за текущим элементом
         }
-    })
-})
-
-chrome.runtime.onConnect.addListener((port) => {
-
-    console.assert(port.name === 'popup-connection')
-
-    port.onMessage.addListener((msg) => {
-        console.log('Port message:', msg)
     })
 })
 
@@ -60,19 +51,17 @@ function tryAgainWrapper(fn) {
 
     async function wrapper(...args) {
         try {
-            if (errorAlready < 2) await fn.apply(this, args)
+            if (errorAlready < 10) await fn.apply(this, args)
             else throw savedError
             
             if (errorAlready > 1) errorAlready = 0
         } catch (err) {
             const vacancyErrorNode = findNodeByTagnameAndAttribute(args[0], 'H2', 'data-qa' ,'bloko-header-2')
-            console.log('YES', vacancyErrorNode)
             const vacancyText = vacancyErrorNode?.innerText
             const vacancyLink = findNodeByTagnameAndAttribute(vacancyErrorNode, 'A', 'class' ,'bloko-link')?.href
             const vacancyErrorElement = { vacancyLabel: vacancyText, vacancyLink: vacancyLink }
             await chrome.storage.local.get({errorVacancies: []}, (res) => {
                 if (!res.errorVacancies.find(vacancy => vacancy.vacancyLabel === vacancyErrorElement.vacancyLabel)) {
-                    console.log(vacancyErrorElement.vacancyLabel)
                     arrNotApprovedVacancies.push(vacancyErrorElement)
                     chrome.storage.local.set({errorVacancies: [vacancyErrorElement, ...res.errorVacancies]})
 
@@ -82,9 +71,7 @@ function tryAgainWrapper(fn) {
 
             savedError = err
             ++errorAlready 
-            if (errorAlready >= 2) throw err
-
-            console.log(arrNotApprovedVacancies)
+            if (errorAlready >= 10) throw err
         }    
     }
 
@@ -147,7 +134,6 @@ function откликнутьсяНаВакансию(vacancyNode, Кнопка�
                 event.preventDefault()
             });
     
-            // console.log(th)
             КнопкаОткликнуться.click()
     
             await pause(delay)
@@ -198,7 +184,6 @@ function findNodeByTagnameAndTextInTag(node, tagName, textInTag) {
 }
 
 function findNodeByTagnameAndAttribute(node, tagName, attribute, attributeValue) {
-    console.log(node)
     // Проверяем текущий узел
     if (node && node.tagName === tagName && node.attributes[attribute].nodeName ===  attribute && node.attributes[attribute].nodeValue === attributeValue) {
         return node; // Если имя узла соответствует целевому, возвращаем его
@@ -352,6 +337,40 @@ function respondInBlockedPopup() {
         }
     })
 }
+
+window.addEventListener('popstate', function(event) {
+    console.log('popstate', event.state, event.state.content)
+});
+
+const observeChanges = (element) => {
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                console.log('Style changed:', mutation.target.style.display);
+            }
+            if (mutation.type === 'childList') {
+                mutation.addedNodes.forEach(node => {
+                    let doDeleteElement = false
+                    ignoreClassesBlockWork.forEach(item => {
+                        doDeleteElement = node.classList.contains(item)
+                    })
+                    if (node.nodeType === 1 && doDeleteElement) { // Проверка, что добавлен элемент
+                        node.parentNode.removeChild(node)
+                    }
+                });
+            }
+        });
+    });
+
+    observer.observe(element, {
+        attributes: true,
+        childList: true,
+        subtree: true,
+        attributeFilter: ['style']
+    });
+};
+
+observeChanges(document.body)
 
 function pause(delay) {
     return new Promise(resolve => setTimeout(() => resolve(), delay))
