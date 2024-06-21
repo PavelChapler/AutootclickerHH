@@ -1,42 +1,13 @@
 const button = document.getElementById('switchButton')
 const error = document.getElementsByClassName('error')[0]
 const coverLetter = document.getElementById('coverLetter')
+const vacanciesNumber = document.getElementById('numberVacancies')
+const errorVacanciesList = document.getElementById('errorVacanciesList')
 
-setTimeout(() => {
-    console.log(coverLetter.value)
-}, 10000)
-
-chrome.storage.sync.get('coverLetter').then(items => {
-    console.log(items.coverLetter)
-})
-
+let port
 let isHHtab
 let isEnabledExtensions
 
-const test = {enabled: false}
-
-coverLetter.addEventListener('input', () => {
-    chrome.storage.sync.set({coverLetter: coverLetter.value})
-})
-
-// //Функции для возврата на предыдущую страницу
-// function returnToPreviousPage() {
-//     setTimeout(() => {
-//         if (initialUrl) {
-//             chrome.tabs.update({ url: initialUrl });
-//             console.log('RETURN previous page:', initialUrl);
-//         } else {
-//             console.log('URL previous page NOT FOUND.');
-//         }
-//     }, 5000)
-// }
-
-// chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-//     if (changeInfo.url && changeInfo.status === 'loading' && changeInfo.url !== initialUrl) {
-//         returnToPreviousPage()
-
-//     }
-// })
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'error') {
@@ -48,10 +19,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'final') {
         offExtension()
     }
+
+    if (message.type === 'redrawErrorVacansiesList') {
+        createListErrorVacansies(message.content)
+    }
+
+    if (message.type === 'quantityVacancies') {
+        vacanciesNumber.value = message.content
+
+        const inputEvent = new Event('input', { bubbles: true })
+
+        vacanciesNumber.dispatchEvent(inputEvent)
+    }
 })
 
 chrome.storage.sync.get("enabled").then(items => {
-    console.log(items.enabled)
     isEnabledExtensions = items.enabled
 
     if (isEnabledExtensions) {
@@ -60,11 +42,87 @@ chrome.storage.sync.get("enabled").then(items => {
 })
 
 chrome.storage.sync.get("coverLetter").then(items => {
-    console.log(items.coverLetter)
     coverLetter.value = items.coverLetter
 })
 
-console.log(isEnabledExtensions)
+chrome.storage.local.get("errorVacancies").then(items => {
+    console.log('vaca', items)
+    const errorVacancies = items.errorVacancies
+
+    createListErrorVacansies(errorVacancies)
+}).then(res => {
+    console.log(res)
+    checkResolveErrorVacansies()
+})
+
+chrome.storage.local.get('resolvedErrorVacancies').then((res) => {
+    const resolvedErrorVacancies = res.resolvedErrorVacancies
+    console.log(resolvedErrorVacancies)
+    // resolvedErrorVacancies.filter(vacancy => vacancy !== clickedVacancy)
+
+    // chrome.storage.local.set({resolvedErrorVacancies: resolvedErrorVacancies})
+})
+
+chrome.storage.sync.get('vacanciesNumber').then(res => {
+    vacanciesNumber.value = res.vacanciesNumber || 0
+})
+
+document.addEventListener('DOMContentLoaded', () => {
+    port = chrome.runtime.connect({ name: 'popup-connection' })
+
+    port.postMessage({ message: 'HALO' })
+})
+
+coverLetter.addEventListener('input', () => {
+    chrome.storage.sync.set({coverLetter: coverLetter.value})
+})
+
+errorVacanciesList.addEventListener('click', (e) => {
+    if (e.target.tagName === 'A') {
+        console.log('yes')
+        chrome.storage.local.get({resolvedErrorVacancies: []}, (res) => {
+            const resolvedErrorVacancies = res.resolvedErrorVacancies
+            const clickedVacancy = e.target.innerText
+    
+            if (!resolvedErrorVacancies.includes(clickedVacancy)) {
+                resolvedErrorVacancies.push(clickedVacancy)
+            }
+    
+            chrome.storage.local.set({resolvedErrorVacancies: resolvedErrorVacancies})
+        })
+    }
+
+    if (e.target.tagName === 'BUTTON') {
+        chrome.storage.local.get({errorVacancies: []}, (res) => {
+            const errorVacancies = res.errorVacancies
+            const index = errorVacancies.findIndex((vacancy => vacancy.vacancyLabel === e.target.parentNode.innerText))
+            console.log(res.errorVacancies)
+
+            errorVacancies.splice(index, 1)
+
+            chrome.storage.local.set({errorVacancies: errorVacancies})
+
+            createListErrorVacansies(errorVacancies)
+            checkResolveErrorVacansies()
+        })
+
+        chrome.storage.local.get({resolvedErrorVacancies: []}, (res) => {
+            const resolvedErrorVacancies = res.resolvedErrorVacancies
+    
+            const index = resolvedErrorVacancies.findIndex((vacancy => vacancy === e.target.parentNode.innerText))
+
+            resolvedErrorVacancies.splice(index, 1)
+    
+            chrome.storage.local.set({resolvedErrorVacancies: resolvedErrorVacancies})
+        })
+    }
+
+    console.log(e)
+})
+
+vacanciesNumber.addEventListener('input', (e) => {
+    chrome.storage.sync.set({vacanciesNumber: e.target.value})
+})
 
 button.addEventListener('click', (e) => {
     // Получаем ID текущей открытой вкладки
@@ -76,7 +134,7 @@ button.addEventListener('click', (e) => {
         if (!isEnabledExtensions) {
             if (tabs.length > 0 && isHHtab) {
                 // Отправляем сообщение на текущую страницу
-                chrome.tabs.sendMessage(currentTabId, { type: 'executeFunction', coverLetter: coverLetter.value });
+                chrome.tabs.sendMessage(currentTabId, { type: 'executeFunction', coverLetter: coverLetter.value, vacanciesNumber: +vacanciesNumber.value });
                 // Сохраняем в стор расширений состояние что расширение запущено
                 onExtension()
             } else {
@@ -97,26 +155,20 @@ button.addEventListener('click', (e) => {
     });
 });
 
-function onExtension() {
-    // chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    //     const currentTab = tabs[0]
-    //     const currentTabId = currentTab.id
-    //     isHHtab = currentTab.url.includes('hh.ru')
-    //
-    //     if (tabs.length > 0 && isHHtab) {
-    //         // Отправляем сообщение на текущую страницу
-    //         chrome.tabs.sendMessage(currentTabId, { type: 'executeFunction' });
-    //         // Сохраняем в стор расширений состояние что расширение запущено
-    //         onExtension()
-    //     } else {
-    //         console.log("Страница с вашим контентным скриптом не открыта");
-    //         warningHhLabel.style.display = 'flex'
-    //         setTimeout(() => {
-    //             warningHhLabel.style.display = 'none'
-    //         }, 5000)
-    //     }
-    // });
 
+
+function checkResolveErrorVacansies() {
+    document.querySelectorAll('a').forEach((link) => {
+        chrome.storage.local.get("resolvedErrorVacancies").then(items => {
+            console.log(items.resolvedErrorVacancies.includes(link.innerText))
+            if (items.resolvedErrorVacancies.includes(link.innerText)) {
+                link.classList.add('visitedLink')
+            }
+        })
+    })
+}
+
+function onExtension() {
     isEnabledExtensions = true
     chrome.storage.sync.set({enabled: true, coverLetter: coverLetter.value})
 
@@ -124,25 +176,6 @@ function onExtension() {
 }
 
 function offExtension() {
-    // chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    //     const currentTab = tabs[0]
-    //     const currentTabId = currentTab.id
-    //     isHHtab = currentTab.url.includes('hh.ru')
-    //
-    //     if (tabs.length > 0 && isHHtab) {
-    //         // Отправляем сообщение на текущую страницу
-    //         chrome.tabs.sendMessage(currentTabId, { type: 'stopFunction' });
-    //         // Сохраняем в стор расширений состояние что расширение остановлено
-    //         offExtension()
-    //     } else {
-    //         console.log("Страница с вашим контентным скриптом не открыта");
-    //         warningHhLabel.style.display = 'flex'
-    //         setTimeout(() => {
-    //             warningHhLabel.style.display = 'none'
-    //         }, 5000)
-    //     }
-    // });
-
     isEnabledExtensions = false
     chrome.storage.sync.set({enabled: false})
 
@@ -159,6 +192,24 @@ function showError(message) {
     }
 }
 
-function sendMessageToEnableExtensions() {
+function createListErrorVacansies(errorVacancies) {
+    errorVacanciesList.innerHTML = ''
+    for (let i = 0; i < errorVacancies.length; i++) {
+        const newListItem = document.createElement('li')
+        const newLinkItem = document.createElement('a')
+        const newButtonClose = document.createElement('button')
 
+        newButtonClose.classList.add('errorVacanciesList__item-close')
+
+        newLinkItem.target = "_blank"
+        newLinkItem.href = errorVacancies[i]?.vacancyLink
+        newLinkItem.textContent = errorVacancies[i]?.vacancyLabel
+        newLinkItem.classList.add('errorVacanciesList__link')
+
+        newListItem.classList.add('errorVacanciesList__item')
+        newListItem.appendChild(newLinkItem)
+        newListItem.appendChild(newButtonClose)
+
+        errorVacanciesList.appendChild(newListItem)
+    }
 }

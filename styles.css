@@ -15,6 +15,19 @@ html {
     background: var(--main-red-color);
 }
 
+html::-webkit-scrollbar {
+    width: 3px;
+}
+
+html::-webkit-scrollbar-track {
+    background-color: var(--main-red-color);
+}
+
+html::-webkit-scrollbar-thumb {
+    background-color: var(--main-green-color);
+}
+
+
 .header {
     background: var(--main-red-color);
 }
@@ -23,7 +36,7 @@ html {
     background: var(--main-red-color);
     color: white;
     width: 100%;
-    padding: 2rem 2rem;
+    padding: 2rem 2rem 2.4rem;
 }
 
 h1 {
@@ -78,6 +91,35 @@ h1::after {
     outline: none;
 }
 
+/*number-vacancies*/
+.number-vacancies {
+    margin-top: 1.3rem;
+    display: flex;
+    align-items: end;
+    justify-content: flex-start;
+}
+
+.number-vacancies__label {
+    margin: 0;
+}
+
+.number-vacancies__field {
+    height: 100%;
+    padding: 0.3rem;
+    display: block;
+    border: none;
+    outline: none;
+    width: 80px;
+    margin-left: 30px;
+    border-radius: var(--main-border-radius);
+    text-align: center;
+}
+
+.number-vacancies__field:active {
+    outline: none;
+    border: none;
+}
+
 /*button*/
 .button-start {
     text-align: center;
@@ -127,4 +169,100 @@ h1::after {
     font-size: 1.1rem;
     font-weight: 300;
     overflow-wrap: anywhere;
+}
+
+
+
+.errorVacancies {
+    margin-top: 30px;
+}
+
+.errorVacancies__label {
+    margin: 0;
+}
+
+.errorVacanciesList {
+    height: 50px;
+    overflow-y: scroll;
+    padding: 0;
+    margin-top: 15px;
+}
+
+.errorVacanciesList::-webkit-scrollbar {
+    width: 10px;
+}
+
+.errorVacanciesList::-webkit-scrollbar-track {
+    background-color:#edeadf;
+    border-radius: var(--main-border-radius);
+}
+
+.errorVacanciesList::-webkit-scrollbar-thumb {
+    border-radius: var(--main-border-radius);
+    background-color: var(--main-green-color);
+}
+
+.errorVacanciesList__item {
+    display: flex;
+    align-items: center;
+    position: relative;
+    justify-content: space-between;
+    padding-right: 20px;
+}
+
+.errorVacanciesList__link {
+    font-weight: 500;
+    color: var(--main-green-color);
+    margin-right: 10px;
+}
+
+.errorVacanciesList__link:hover {
+    color: aqua;
+}
+
+.errorVacanciesList__item-close {
+    width: 16px;
+    height: 16px;
+    position: relative;
+    background: none;
+    outline: none;
+    border: none;
+}
+
+.errorVacanciesList__item-close:hover {
+    cursor: pointer;
+}
+
+.errorVacanciesList__item-close:focus {
+    outline: none;
+}
+
+.errorVacanciesList__item-close::before,
+.errorVacanciesList__item-close::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%; /* длина линии */
+    height: 2px; /* толщина линии */
+    background-color: white; /* цвет линии */
+    transform-origin: center;
+}
+
+.errorVacanciesList__item-close:hover::before,
+.errorVacanciesList__item-close:hover::after {
+    background-color: gray;
+}
+
+.errorVacanciesList__item-close::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.errorVacanciesList__item-close::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+
+.visitedLink {
+    color: rgb(156, 156, 156);
 }

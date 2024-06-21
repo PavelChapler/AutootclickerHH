@@ -17,9 +17,20 @@
                         <textarea id="coverLetter" name="coverLetter" rows="5" cols="33" class="cover-letter__textarea"></textarea>
                     </div>
                 </div>
+
+                <div class="number-vacancies">
+                    <label for="numberVacancies" class="number-vacancies__label">На сколько вакансий откликнуться:</label>
+                    <input id="numberVacancies" class="number-vacancies__field">
+                </div>
     
                 <button id="switchButton" class="button-start">Start</button>
     
+                <div class="errorVacancies">
+                    <p class="errorVacancies__label">Неоткликнутые вакансии:</p>
+                    <ul id="errorVacanciesList" class="errorVacanciesList">
+                    </ul>
+                </div>
+
                 <div class="error">
                     <img class="error__image" src="error-image.jpg" alt="error-icon">
                     <h2 class="error__text"></h2>

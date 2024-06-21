@@ -1,11 +1,17 @@
 const MAIN_VACANCIES_BLOK_NAME = "a11y-main-content"
 const START_VACANSY_NUM = 0
 
-let vacancyCollectionHtml = document.getElementById(MAIN_VACANCIES_BLOK_NAME).children
+let vacancyCollectionHtml = document.getElementById(MAIN_VACANCIES_BLOK_NAME)?.children
 let isEnabledExtensions = false
 let completedVacancyIndex = 0
 let coverLetter
+let quantityVacancies = 0
+let quantityCompletedVacancies = 0
 let final = false
+let errorAlready = false
+let vacancyResponseButtonMain = document.querySelector(`[data-qa="vacancy-response-link-top"]`)
+
+console.log(vacancyResponseButtonMain)
 
 
 const observer = new IntersectionObserver((entries, observer) => {
@@ -23,22 +29,67 @@ const observer = new IntersectionObserver((entries, observer) => {
     })
 })
 
+chrome.runtime.onConnect.addListener((port) => {
+
+    console.assert(port.name === 'popup-connection')
+
+    port.onMessage.addListener((msg) => {
+        console.log('Port message:', msg)
+    })
+})
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "executeFunction") {
-        onExtension()
         coverLetter = message.coverLetter
+        quantityVacancies = message.vacanciesNumber
 
-        userScrollOff()
-        перебратьВсеВакансии()
+        onExtension()
     }
 
     if (message.type === 'stopFunction') {
         offExtension()
-        userScrollOn()
     }
 })
 
+
+
+function tryAgainWrapper(fn) {
+    let errorAlready = 0
+    let savedError
+    let arrNotApprovedVacancies = []
+
+    async function wrapper(...args) {
+        try {
+            if (errorAlready < 2) await fn.apply(this, args)
+            else throw savedError
+            
+            if (errorAlready > 1) errorAlready = 0
+        } catch (err) {
+            const vacancyErrorNode = findNodeByTagnameAndAttribute(args[0], 'H2', 'data-qa' ,'bloko-header-2')
+            console.log('YES', vacancyErrorNode)
+            const vacancyText = vacancyErrorNode?.innerText
+            const vacancyLink = findNodeByTagnameAndAttribute(vacancyErrorNode, 'A', 'class' ,'bloko-link')?.href
+            const vacancyErrorElement = { vacancyLabel: vacancyText, vacancyLink: vacancyLink }
+            await chrome.storage.local.get({errorVacancies: []}, (res) => {
+                if (!res.errorVacancies.find(vacancy => vacancy.vacancyLabel === vacancyErrorElement.vacancyLabel)) {
+                    console.log(vacancyErrorElement.vacancyLabel)
+                    arrNotApprovedVacancies.push(vacancyErrorElement)
+                    chrome.storage.local.set({errorVacancies: [vacancyErrorElement, ...res.errorVacancies]})
+
+                    chrome.runtime.sendMessage({type: 'redrawErrorVacansiesList', content: [vacancyErrorElement, ...res.errorVacancies]})
+                }
+            })   
+
+            savedError = err
+            ++errorAlready 
+            if (errorAlready >= 2) throw err
+
+            console.log(arrNotApprovedVacancies)
+        }    
+    }
+
+    return wrapper
+}
 
 async function перебратьВсеВакансии() {
     if (final) toFinish()
@@ -49,6 +100,8 @@ async function перебратьВсеВакансии() {
 
     for (let i = 0; completedVacancyIndex <= vacancyCollectionHtml.length; completedVacancyIndex++) {
         try {
+            if (quantityVacancies === quantityCompletedVacancies) toFinish()
+
             if (!isEnabledExtensions) break;
 
             if (completedVacancyIndex === vacancyCollectionHtml.length) {
@@ -65,10 +118,14 @@ async function перебратьВсеВакансии() {
             await waitForElementToBecomeVisible(vacancyNode);
 
             await откликнутьсяНаВакансию(vacancyNode, узелКнопкиОткликнуться, 2000)
+
+            quantityCompletedVacancies++
+
+            chrome.runtime.sendMessage({type: 'quantityVacancies', content: quantityVacancies - quantityCompletedVacancies})
         } catch (err) {
             console.error(err.cause || err)
 
-            offExtension(err.message)
+            offExtension(err.cause || err)
 
             userScrollOn()
 
@@ -79,7 +136,7 @@ async function перебратьВсеВакансии() {
     return true
 }
 
-function откликнутьсяНаВакансию(vacancyNode, КнопкаОткликнуться, delay = 0) {
+function откликнутьсяНаВакансию(vacancyNode, КнопкаОткликнуться, delay = 1000) {
     return new Promise(async (resolve, reject) => {
         try {
             setTimeout(() => {
@@ -90,6 +147,7 @@ function откликнутьсяНаВакансию(vacancyNode, Кнопка�
                 event.preventDefault()
             });
     
+            // console.log(th)
             КнопкаОткликнуться.click()
     
             await pause(delay)
@@ -110,12 +168,16 @@ function откликнутьсяНаВакансию(vacancyNode, Кнопка�
     
             await sendCoverLetter(vacancyNode, 'vacancy-response-letter-submit')
 
+            await pause(500)
+
             resolve()
         } catch(err) {
             reject(err)
         }
     })
 }
+
+откликнутьсяНаВакансию = tryAgainWrapper(откликнутьсяНаВакансию)
 
 function findNodeByTagnameAndTextInTag(node, tagName, textInTag) {
     // Проверяем текущий узел
@@ -126,6 +188,27 @@ function findNodeByTagnameAndTextInTag(node, tagName, textInTag) {
     // Перебираем всех дочерних узлов рекурсивно
     for (let i = 0; i < node.children.length; i++) {
         const result = findNodeByTagnameAndTextInTag(node.children[i], tagName, textInTag);
+        if (result) {
+            return result; // Если имя найдено в одном из дочерних узлов, возвращаем его
+        }
+    }
+
+    // Если имя не найдено в текущем узле и его дочерних узлах, возвращаем undefined
+    return undefined;
+}
+
+function findNodeByTagnameAndAttribute(node, tagName, attribute, attributeValue) {
+    console.log(node)
+    // Проверяем текущий узел
+    if (node && node.tagName === tagName && node.attributes[attribute].nodeName ===  attribute && node.attributes[attribute].nodeValue === attributeValue) {
+        return node; // Если имя узла соответствует целевому, возвращаем его
+    }
+
+    if (!node.children) return undefined
+
+    // Перебираем всех дочерних узлов рекурсивно
+    for (let i = 0; i < node.children.length; i++) {
+        const result = findNodeByTagnameAndAttribute(node.children[i], tagName, attribute, attributeValue);
         if (result) {
             return result; // Если имя найдено в одном из дочерних узлов, возвращаем его
         }
@@ -289,13 +372,19 @@ function userScrollOn() {
 }
 
 function onExtension() {
+    userScrollOff()
+
     isEnabledExtensions = true
+
+    перебратьВсеВакансии()
 }
 
 function offExtension(err) {
     if (err) chrome.runtime.sendMessage({type: 'error', content: err.message})
 
     isEnabledExtensions = false
+
+    userScrollOn()
 }
 
 function toFinish() {
