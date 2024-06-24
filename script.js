@@ -436,7 +436,7 @@ function toFinish() {
 }
 
 function checkUrlChange() {
-    return !mainUrl === location.href
+    return mainUrl !== location.href
 }
 
 function returnMainUrl() {
