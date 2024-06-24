@@ -1,7 +1,7 @@
 const MAIN_VACANCIES_BLOK_NAME = "a11y-main-content"
-const START_VACANSY_NUM = 0
 const ignoreClassesBlockWork = ['bloko-modal-overlay']
 
+let START_VACANSY_NUM = 0
 let vacancyCollectionHtml = document.getElementById(MAIN_VACANCIES_BLOK_NAME)?.children
 let isEnabledExtensions = false
 let completedVacancyIndex = 0
@@ -11,6 +11,7 @@ let quantityCompletedVacancies = 0
 let final = false
 let errorAlready = false
 let vacancyResponseButtonMain = document.querySelector(`[data-qa="vacancy-response-link-top"]`)
+let mainUrl
 
 
 
@@ -26,6 +27,23 @@ const observer = new IntersectionObserver((entries, observer) => {
             }
             observer.unobserve(entry.target); // Отключаем наблюдение за текущим элементом
         }
+    })
+})
+
+chrome.storage.sync.get("enabled").then(res => {
+    chrome.storage.sync.get("numStoppedVacancy").then(res2 => {
+        chrome.storage.sync.get("vacanciesNumber").then(res3 => {
+            chrome.storage.sync.get("coverLetter").then(res4 => {
+                if (res.enabled) {
+                    coverLetter = res4.coverLetter
+                    quantityVacancies = +res3.vacanciesNumber || 0
+                    START_VACANSY_NUM = +res2.numStoppedVacancy || 0
+                    setTimeout(() => {
+                        onExtension()
+                    }, 3000)
+                }
+            })
+        })   
     })
 })
 
@@ -87,6 +105,11 @@ async function перебратьВсеВакансии() {
 
     for (let i = 0; completedVacancyIndex <= vacancyCollectionHtml.length; completedVacancyIndex++) {
         try {
+            if (checkUrlChange()) {
+                await chrome.storage.sync.set({numStoppedVacancy: completedVacancyIndex})
+                returnMainUrl()
+            }
+            
             if (quantityVacancies === quantityCompletedVacancies) toFinish()
 
             if (!isEnabledExtensions) break;
@@ -126,10 +149,6 @@ async function перебратьВсеВакансии() {
 function откликнутьсяНаВакансию(vacancyNode, КнопкаОткликнуться, delay = 1000) {
     return new Promise(async (resolve, reject) => {
         try {
-            setTimeout(() => {
-                history.replaceState({}, document.title, window.location.pathname);
-            }, 0);
-    
             КнопкаОткликнуться.addEventListener('click', function(event) {
                 event.preventDefault()
             });
@@ -289,17 +308,24 @@ async function sendCoverLetter(vacancyNode, attributeName) {
 }
 
 function goNextPage() {
+    offExtension()
     const pagerButtonNext = document.querySelector(`[data-qa="${'pager-next'}"]`)
 
     if (!pagerButtonNext) {
         final = true
+
+        toFinish()
 
         return
     }
 
     pagerButtonNext.click()
 
-    setTimeout(() => перебратьВсеВакансии(), 10000)
+    setTimeout(() => {
+        mainUrl = location.href
+
+        onExtension()
+    }, 10000)
 }
 
 function checkBlockingPopup() {
@@ -338,21 +364,14 @@ function respondInBlockedPopup() {
     })
 }
 
-window.addEventListener('popstate', function(event) {
-    console.log('popstate', event.state, event.state.content)
-});
-
 const observeChanges = (element) => {
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
-            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                console.log('Style changed:', mutation.target.style.display);
-            }
             if (mutation.type === 'childList') {
                 mutation.addedNodes.forEach(node => {
                     let doDeleteElement = false
                     ignoreClassesBlockWork.forEach(item => {
-                        doDeleteElement = node.classList.contains(item)
+                        doDeleteElement = node.classList?.contains(item)
                     })
                     if (node.nodeType === 1 && doDeleteElement) { // Проверка, что добавлен элемент
                         node.parentNode.removeChild(node)
@@ -391,6 +410,8 @@ function userScrollOn() {
 }
 
 function onExtension() {
+    mainUrl = location.href
+
     userScrollOff()
 
     isEnabledExtensions = true
@@ -412,4 +433,12 @@ function toFinish() {
     chrome.runtime.sendMessage({type: 'final', content: true})
 
     alert('Перебор вакансий завершен!')
+}
+
+function checkUrlChange() {
+    return !mainUrl === location.href
+}
+
+function returnMainUrl() {
+    window.location.replace(mainUrl);
 }
