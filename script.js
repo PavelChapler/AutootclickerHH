@@ -127,7 +127,7 @@ async function перебратьВсеВакансии() {
             await scrollToTheElement(vacancyNode);
             await waitForElementToBecomeVisible(vacancyNode);
 
-            await откликнутьсяНаВакансию(vacancyNode, узелКнопкиОткликнуться, 2000)
+            await откликнутьсяНаВакансию(vacancyNode, узелКнопкиОткликнуться, 3000)
 
             quantityCompletedVacancies++
 
