@@ -39,7 +39,9 @@ chrome.storage.sync.get("enabled").then(res => {
                     quantityVacancies = +res3.vacanciesNumber || 0
                     START_VACANSY_NUM = +res2.numStoppedVacancy || 0
                     setTimeout(() => {
-                        onExtension()
+                        if (location.href.includes('hh')) {
+                            onExtension()
+                        }
                     }, 3000)
                 }
             })
@@ -101,7 +103,9 @@ async function перебратьВсеВакансии() {
 
     completedVacancyIndex = START_VACANSY_NUM
 
-    vacancyCollectionHtml = document.getElementById("a11y-main-content").children
+    vacancyCollectionHtml = document.getElementById("a11y-main-content")?.children
+
+    if (!vacancyCollectionHtml) return
 
     for (let i = 0; completedVacancyIndex <= vacancyCollectionHtml.length; completedVacancyIndex++) {
         try {
